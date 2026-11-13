@@ -2,7 +2,7 @@
 <html lang="uk">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>ХВОЯ — штучні литі ялинки · демо від nest.a.s</title>
 <meta name="description" content="Демо-версія від nest.a.s. Вітрина виробника штучних литих ялинок: каталог, акційні ціни, замовлення онлайн.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -113,7 +113,7 @@
   .hero-badge small{font-size:12.5px;font-weight:600;line-height:1.3;display:block}
   @keyframes float{50%{transform:translateY(-12px)}}
   .branches{position:absolute;inset:0;pointer-events:none;overflow:hidden;z-index:0}
-  .hero .container,.order>*{z-index:1}
+  .hero .container,.order>*:not(.branches),#catalog>.container,#faq>.container{z-index:1;position:relative}
   .br{position:absolute;width:var(--w,360px)}
   .br.right{transform:scaleX(-1)}
   .br-in{animation:brIn 1.6s cubic-bezier(.2,.8,.2,1) both;animation-delay:var(--d,0s)}
@@ -389,6 +389,13 @@
   .demo-badge button{background:none;border:none;color:rgba(248,243,234,.6);font-size:16px;cursor:pointer;margin-left:2px;line-height:1}
   .nest-link{text-decoration:underline;text-underline-offset:3px;text-decoration-thickness:1px}
   .nest-link:hover{opacity:.8}
+  /* keep floating buttons above mobile browser toolbars: anchor to the dynamic viewport */
+  .to-top{bottom:calc(16px + env(safe-area-inset-bottom))}
+  .demo-badge{bottom:calc(16px + env(safe-area-inset-bottom))}
+  @supports (top:100dvh){
+    .to-top{bottom:auto;top:calc(100dvh - 70px - env(safe-area-inset-bottom))}
+    .demo-badge{bottom:auto;top:calc(100dvh - 16px - env(safe-area-inset-bottom));transform:translateY(-100%)}
+  }
   .demo-badge.hidden{opacity:0;pointer-events:none}
   .demo-strip{background:var(--gold);color:#fff;text-align:center;font-size:12.5px;font-weight:700;letter-spacing:.04em;padding:6px 16px}
 
@@ -441,6 +448,8 @@
     .picker{width:100%}
     .hero .script{font-size:min(25px,6vw);white-space:nowrap}
     #heroBranches .br.left{display:none}
+    #heroBranches .br.right{width:230px;right:-60px!important;top:-70px!important}
+    #catalogBranches .br{width:180px}
     .branches .br{opacity:.9}
     .toast{bottom:auto;top:20px;transform:translate(-50%,-140px)}
   }
@@ -517,7 +526,8 @@
   </div>
 </div>
 
-<section class="section" id="catalog">
+<section class="section" id="catalog" style="position:relative;overflow:hidden">
+  <div class="branches" id="catalogBranches" aria-hidden="true"></div>
   <div class="container">
     <div class="section-head reveal">
       <div class="eyebrow">Каталог</div>
@@ -635,7 +645,8 @@
   </div>
 </section>
 
-<section class="section" id="faq" style="padding-top:0">
+<section class="section" id="faq" style="padding-top:0;position:relative;overflow:hidden">
+  <div class="branches" id="faqBranches" aria-hidden="true"></div>
   <div class="container">
     <div class="section-head reveal">
       <div class="eyebrow">Питання</div>
@@ -1034,33 +1045,38 @@ window.addEventListener('scroll',()=>document.getElementById('header').classList
 // fir branches
 (function(){
   let seed=7; const rnd=()=>(seed=(seed*16807)%2147483647)/2147483647;
-  const greens=['#24503A','#2F5D41','#3B6E4E','#1E4630','#4A7C59','#2A5A3C'];
+  const PAL=['#173B27','#1E4630','#24503A','#2F5D41','#3B6E4E','#4D8059','#5E8F67','#76A47C'];
   function twig(out,x,y,ang,len,nl,depth){
-    const steps=Math.round(len/4.5), bend=(rnd()-.5)*.25;
+    const steps=Math.round(len/2.1), bend=(rnd()-.5)*.35;
     let px=x,py=y,a=ang; const pts=[[x,y]];
     for(let i=1;i<=steps;i++){
       const t=i/steps; a=ang+bend*t;
       px+=Math.cos(a)*len/steps; py+=Math.sin(a)*len/steps; pts.push([px,py]);
-      const L=nl*(1-t*.55)*(.8+rnd()*.4);
-      for(const side of [-1,1]){
-        const na=a+side*(0.85+rnd()*.25);
-        out.n.push(`<path d="M${px.toFixed(1)} ${py.toFixed(1)}l${(Math.cos(na)*L).toFixed(1)} ${(Math.sin(na)*L).toFixed(1)}" stroke="${greens[(rnd()*greens.length)|0]}"/>`);
+      const taper=(1-t*.4)*(t>.88?1-(t-.88)*4:1);
+      for(let k=0;k<3;k++){            // 3 needles per side per step: back, mid, front
+        for(const side of [-1,1]){
+          const L=nl*taper*(.7+rnd()*.5)*(k===2?.8:1);
+          const na=a+side*([1.05,.8,.55][k]+(rnd()-.5)*.3);
+          const ci=k===0?(rnd()*3)|0:k===1?2+((rnd()*3)|0):4+((rnd()*4)|0);
+          (out.p[ci]=out.p[ci]||[]).push(`M${px.toFixed(1)} ${py.toFixed(1)}l${(Math.cos(na)*L).toFixed(1)} ${(Math.sin(na)*L).toFixed(1)}`);
+        }
       }
-      if(depth>0 && i>steps*.18 && i<steps*.8 && i%Math.max(3,Math.round(steps/5))===0){
-        const side=(i/ Math.round(steps/5))%2?1:-1;
-        twig(out,px,py,a+side*(.55+rnd()*.2),len*(.38-t*.15),nl*.82,depth-1);
+      const every=Math.max(5,Math.round(steps/(depth===2?8:4)));
+      if(depth>0 && i>steps*.12 && i<steps*.8 && i%every===0){
+        const side=((i/every)|0)%2?1:-1;
+        twig(out,px,py,a+side*(.55+rnd()*.25),len*(depth===2?.45:.5)*(1-t*.5),nl*.85,depth-1);
       }
     }
-    out.s.push(`<path d="M${pts.map(p=>p[0].toFixed(1)+' '+p[1].toFixed(1)).join('L')}" stroke="#6B4A2E" stroke-width="${depth?2.6:1.6}"/>`);
-    if(depth===2) out.end=[px,py];
+    out.s.push(`<path d="M${pts.map(p=>p[0].toFixed(1)+' '+p[1].toFixed(1)).join('L')}" stroke="#5A3D24" stroke-width="${depth===2?4:depth?2.4:1.4}"/>`);
   }
   function branchSVG(len,lights){
-    const out={n:[],s:[]};
-    twig(out,0,0,-0.05,len,24,2);
+    const out={p:[],s:[]};
+    twig(out,0,0,-0.05,len,30,2);
+    const needles=out.p.map((d,i)=>d?`<path d="${d.join('')}" stroke="${PAL[i]}"/>`:'').join('');
     let l='';
-    if(lights){for(let i=0;i<lights;i++){const x=len*(.25+rnd()*.65),y=(rnd()-.5)*50;
-      l+=`<g class="lt" style="animation-delay:${(-rnd()*2.4).toFixed(2)}s"><circle cx="${x.toFixed(0)}" cy="${y.toFixed(0)}" r="7" fill="#F6D58E" opacity=".25"/><circle cx="${x.toFixed(0)}" cy="${y.toFixed(0)}" r="2.6" fill="#FFE7B0"/></g>`;}}
-    return `<svg viewBox="-6 -120 ${len+40} 240" fill="none" stroke-linecap="round" stroke-width="1.5">${out.s.join('')}${out.n.join('')}${l}</svg>`;
+    for(let i=0;i<(lights||0);i++){const x=len*(.25+rnd()*.65),y=(rnd()-.5)*70;
+      l+=`<g class="lt" style="animation-delay:${(-rnd()*2.4).toFixed(2)}s"><circle cx="${x.toFixed(0)}" cy="${y.toFixed(0)}" r="10" fill="#F6D58E" opacity=".3"/><circle cx="${x.toFixed(0)}" cy="${y.toFixed(0)}" r="3.4" fill="#FFEBC0"/></g>`;}
+    return `<svg viewBox="-10 -150 ${len+50} 300" fill="none" stroke-linecap="round" stroke-width="1.5">${out.s.join('')}${needles}${l}</svg>`;
   }
   function place(id,defs){
     const box=document.getElementById(id); if(!box) return;
@@ -1068,13 +1084,21 @@ window.addEventListener('scroll',()=>document.getElementById('header').classList
       <div class="br-in" style="--d:${d.delay||0}s"><div class="br-sway" style="--r:${d.r}deg;--t:${d.t||7}s;--sd:${-(d.sd||0)}s">${branchSVG(d.len||360,d.lights||0)}</div></div></div>`).join('');
   }
   place('heroBranches',[
-    {side:'left',x:'-70px',y:'-70px',w:'clamp(170px,19vw,270px)',r:14,t:7,delay:.1,lights:2},
-    {side:'left',x:'-90px',y:'86%',w:'clamp(170px,17vw,250px)',r:-16,t:8,sd:2,delay:.35,cls:'hide-sm'},
-    {side:'right',x:'-60px',y:'-60px',w:'clamp(150px,22vw,330px)',r:24,t:6.5,sd:1,delay:.25,lights:2},
-    {side:'right',x:'-80px',y:'90%',w:'clamp(160px,17vw,260px)',r:-18,t:7.5,sd:3,delay:.5,cls:'hide-sm'},
+    {side:'left',x:'-80px',y:'-90px',w:'clamp(240px,24vw,360px)',r:14,t:7,delay:.1,lights:3},
+    {side:'left',x:'-110px',y:'80%',w:'clamp(240px,24vw,380px)',r:-16,t:8,sd:2,delay:.35,cls:'hide-sm'},
+    {side:'right',x:'-70px',y:'-80px',w:'clamp(250px,28vw,420px)',r:22,t:6.5,sd:1,delay:.25,lights:3},
+    {side:'right',x:'-100px',y:'84%',w:'clamp(230px,22vw,360px)',r:-18,t:7.5,sd:3,delay:.5,cls:'hide-sm'},
   ]);
   place('orderBranches',[
-    {side:'left',x:'-70px',y:'80%',w:'clamp(180px,20vw,300px)',r:-20,t:8,sd:2,lights:3},
+    {side:'left',x:'-90px',y:'74%',w:'clamp(240px,24vw,360px)',r:-20,t:8,sd:2,lights:4},
+  ]);
+  place('catalogBranches',[
+    {side:'left',x:'-90px',y:'-40px',w:'clamp(200px,22vw,340px)',r:18,t:7.5,lights:2},
+    {side:'right',x:'-90px',y:'-30px',w:'clamp(200px,22vw,340px)',r:16,t:6.8,sd:2,lights:2},
+  ]);
+  place('faqBranches',[
+    {side:'right',x:'-100px',y:'30%',w:'clamp(200px,22vw,320px)',r:-10,t:7,sd:1,cls:'hide-sm'},
+    {side:'left',x:'-100px',y:'60%',w:'clamp(200px,22vw,320px)',r:8,t:8,sd:3,cls:'hide-sm',lights:2},
   ]);
 })();
 
