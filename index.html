@@ -1046,12 +1046,12 @@ window.addEventListener('scroll',()=>document.getElementById('header').classList
 // fir branches (images)
 (function(){
   // ratio = h/w; bx,by = stem base position in % of image box
-  const IM={'branch-snow-1':{r:1.452,bx:.5,by:81},'branch-snow-2':{r:1.5,bx:.7,by:99},'branch-green':{r:1.374,bx:.6,by:75.3}};
+  const IM={'branch-snow-1':{r:1.5,bx:2.7,by:81.1},'branch-snow-2':{r:1.777,bx:2,by:82.2},'branch-green':{r:1.5,bx:4.8,by:71.8}};
   function place(id,defs){
     const box=document.getElementById(id); if(!box) return;
     box.innerHTML=defs.map(d=>{const m=IM[d.img];
       return `<div class="br ${d.side}${d.cls?' '+d.cls:''}" style="--w:${d.w};${d.side==='right'?'right':'left'}:calc(${d.x} - var(--w) * ${m.bx/100});top:calc(${d.y} - var(--w) * ${(m.r*m.by/100).toFixed(3)})">
-      <div class="br-in" style="--d:${d.delay||0}s"><div class="br-sway" style="transform-origin:${m.bx}% ${m.by}%;--r:${d.r}deg;--t:${d.t||7}s;--sd:${-(d.sd||0)}s"><img src="img/${d.img}.webp" alt="" loading="${d.lazy?'lazy':'eager'}" decoding="async"></div></div></div>`;}).join('');
+      <div class="br-in" style="--d:${d.delay||0}s"><div class="br-sway" style="transform-origin:${m.bx}% ${m.by}%;--r:${d.r}deg;--t:${d.t||7}s;--sd:${-(d.sd||0)}s"><img src="img/${d.img}.png" alt="" loading="${d.lazy?'lazy':'eager'}" decoding="async"></div></div></div>`;}).join('');
   }
   // x,y = where the stem base sits; r = rotation (0 = branch points up-right, 90 = down-right)
   place('heroBranches',[
