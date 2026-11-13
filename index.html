@@ -140,7 +140,16 @@
   @keyframes marq{to{transform:translateX(-50%)}}
 
   /* catalog */
-  .toolbar{display:flex;justify-content:space-between;align-items:center;gap:20px;flex-wrap:wrap;margin-bottom:36px}
+  .toolbar{display:flex;justify-content:space-between;align-items:flex-end;gap:20px;flex-wrap:wrap;margin-bottom:36px}
+  .picker{flex:1;min-width:0;max-width:760px}
+  .pick-label{font-size:12px;font-weight:800;letter-spacing:.16em;text-transform:uppercase;color:var(--muted);margin:0 0 10px}
+  .picker .chips{margin-bottom:20px}
+  .picker .chip{border-radius:14px;padding:12px 20px;background:#FBF8F2;border-color:rgba(19,48,31,.1);font-size:15px;font-variant-numeric:lining-nums}
+  .picker .chip:hover{border-color:var(--gold);transform:translateY(-1px)}
+  .picker .chip.active{background:var(--forest);border-color:var(--forest);color:#fff;box-shadow:0 8px 20px rgba(19,48,31,.18)}
+  .pick-hint{background:var(--cream-2);border-radius:14px;padding:13px 18px;font-size:14px;color:var(--muted);min-height:46px;transition:opacity .25s}
+  .pick-hint b{color:var(--forest);font-weight:800;margin-right:4px}
+  .pick-hint.swap{opacity:0}
   .chips{display:flex;gap:8px;flex-wrap:wrap}
   .chip{padding:10px 20px;border-radius:100px;background:#fff;border:1.5px solid rgba(19,48,31,.12);font-weight:700;font-size:14px;color:var(--forest);cursor:pointer;transition:all .25s;display:inline-flex;align-items:center;gap:8px}
   .chip .dot{width:11px;height:11px;border-radius:50%}
@@ -418,6 +427,9 @@
     .stats b{font-size:34px}
     .toolbar{flex-direction:column;align-items:flex-start}
     .br.hide-sm{display:none}
+    #heightChips{display:grid;grid-template-columns:repeat(5,1fr);gap:6px}
+    #heightChips .chip{padding:12px 0;justify-content:center;font-size:14px}
+    .picker{width:100%}
     .hero .script{font-size:min(25px,6vw);white-space:nowrap}
     #heroBranches .br.left{display:none}
     .branches .br{opacity:.9}
@@ -501,13 +513,19 @@
     <div class="section-head reveal">
       <div class="eyebrow">Каталог</div>
       <h2>Оберіть свою ялинку</h2>
-      <p>Усі моделі — у п’яти висотах від 1,5 до 2,5 м. Оберіть висоту прямо на картці, і ціна оновиться.</p>
+      <p>Вкажіть висоту й колір, і ціни одразу оновляться під ваш вибір.</p>
     </div>
     <div class="toolbar reveal">
-      <div class="chips" id="filters">
-        <button class="chip active" data-f="all">Усі моделі</button>
-        <button class="chip" data-f="green"><span class="dot" style="background:var(--pine)"></span>Зелені</button>
-        <button class="chip" data-f="blue"><span class="dot" style="background:var(--blue)"></span>Блакитні</button>
+      <div class="picker">
+        <div class="pick-label">Висота</div>
+        <div class="chips" id="heightChips"></div>
+        <div class="pick-label">Колір</div>
+        <div class="chips" id="filters">
+          <button class="chip active" data-f="all">Усі</button>
+          <button class="chip" data-f="green"><span class="dot" style="background:var(--pine)"></span>Зелені</button>
+          <button class="chip" data-f="blue"><span class="dot" style="background:var(--blue)"></span>Блакитні</button>
+        </div>
+        <div class="pick-hint" id="pickHint" aria-live="polite"></div>
       </div>
       <label class="sort">Сортувати:
         <select id="sort">
@@ -756,7 +774,24 @@ function cardHTML(p){
       </div>
     </div></article>`;
 }
-let filter='all', sortMode='pop';
+let filter='all', sortMode='pop', gHeight=2;
+const heightHints=[
+  'Для стелі від 2,2 м. Компактна ялинка для дитячої, кабінету чи невеликої квартири.',
+  'Для стелі від 2,4 м. Найпопулярніший розмір для квартир зі стандартними стелями.',
+  'Для стелі від 2,6 м. Ялинка стає центром вітальні.',
+  'Для стелі від 2,8 м. Ефектний варіант для просторих кімнат і студій.',
+  'Для високих стель, будинків і холів від 3 м.',
+];
+const hc=document.getElementById('heightChips'), hint=document.getElementById('pickHint');
+hc.innerHTML=H.map((h,k)=>`<button class="chip" data-k="${k}">${h} м</button>`).join('');
+function setHeight(k){
+  gHeight=k; products.forEach(p=>sel[p.id]=k);
+  hc.querySelectorAll('.chip').forEach((c,i)=>{c.classList.toggle('active',i===k);c.setAttribute('aria-pressed',i===k);});
+  hint.classList.add('swap');
+  setTimeout(()=>{hint.innerHTML=`<b>${H[k]} м:</b>${heightHints[k]}`;hint.classList.remove('swap');},150);
+  if(typeof render==='function' && grid.children.length) render();
+}
+hc.addEventListener('click',e=>{const c=e.target.closest('.chip'); if(c) setHeight(+c.dataset.k);});
 function render(){
   let list=[...products];
   if(sortMode!=='pop') list.sort((a,b)=>(a.prices[sel[a.id]][1]-b.prices[sel[b.id]][1])*(sortMode==='asc'?1:-1));
@@ -788,6 +823,7 @@ document.getElementById('filters').addEventListener('click',e=>{
 });
 document.getElementById('sort').addEventListener('change',e=>{sortMode=e.target.value;render();});
 render();
+setHeight(2);
 
 /* ---------- cart ---------- */
 let cart=[];
@@ -880,7 +916,7 @@ function showGuide(k){
   <a href="#catalog" class="btn btn-forest" data-pick="${k}">Показати ялинки ${g.h} м</a>`;
 }
 gv.addEventListener('click',e=>{const t=e.target.closest('.gtree'); if(t) showGuide(+t.dataset.k);});
-gi.addEventListener('click',e=>{const b=e.target.closest('[data-pick]'); if(!b) return; const k=+b.dataset.pick; products.forEach(p=>sel[p.id]=k); render();});
+gi.addEventListener('click',e=>{const b=e.target.closest('[data-pick]'); if(!b) return; const k=+b.dataset.pick; setHeight(k);});
 showGuide(2);
 
 /* ---------- faq ---------- */
