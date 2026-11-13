@@ -117,8 +117,8 @@
   .br{position:absolute;width:var(--w,360px)}
   .br.right{transform:scaleX(-1)}
   .br-in{animation:brIn 1.6s cubic-bezier(.2,.8,.2,1) both;animation-delay:var(--d,0s)}
-  .br-sway{transform-origin:0 50%;transform:rotate(var(--r,0deg));animation:sway var(--t,7s) ease-in-out infinite alternate;animation-delay:var(--sd,0s)}
-  .br svg{display:block;width:100%;height:auto;overflow:visible;filter:drop-shadow(0 10px 14px rgba(19,48,31,.18))}
+  .br-sway{transform:rotate(var(--r,0deg));animation:sway var(--t,7s) ease-in-out infinite alternate;animation-delay:var(--sd,0s)}
+  .br img{display:block;width:100%;height:auto;filter:drop-shadow(0 12px 16px rgba(19,48,31,.22))}
   .br .lt{animation:twinkle 2.4s ease-in-out infinite alternate}
   @keyframes brIn{from{opacity:0;transform:translateX(-45%) rotate(-8deg)}to{opacity:1;transform:none}}
   @keyframes sway{from{transform:rotate(calc(var(--r,0deg) - 2.2deg))}to{transform:rotate(calc(var(--r,0deg) + 2.2deg))}}
@@ -448,8 +448,9 @@
     .picker{width:100%}
     .hero .script{font-size:min(25px,6vw);white-space:nowrap}
     #heroBranches .br.left{display:none}
-    #heroBranches .br.right{width:230px;right:-60px!important;top:-70px!important}
-    #catalogBranches .br{width:180px}
+    #heroBranches .br.right{--w:150px!important}
+    #catalogBranches .br{--w:120px!important}
+    #orderBranches .br{--w:140px!important}
     .branches .br{opacity:.9}
     .toast{bottom:auto;top:20px;transform:translate(-50%,-140px)}
   }
@@ -1042,63 +1043,32 @@ window.addEventListener('scroll',()=>document.getElementById('header').classList
   tick(); setInterval(tick,1000);
 })();
 
-// fir branches
+// fir branches (images)
 (function(){
-  let seed=7; const rnd=()=>(seed=(seed*16807)%2147483647)/2147483647;
-  const PAL=['#173B27','#1E4630','#24503A','#2F5D41','#3B6E4E','#4D8059','#5E8F67','#76A47C'];
-  function twig(out,x,y,ang,len,nl,depth){
-    const steps=Math.round(len/2.1), bend=(rnd()-.5)*.35;
-    let px=x,py=y,a=ang; const pts=[[x,y]];
-    for(let i=1;i<=steps;i++){
-      const t=i/steps; a=ang+bend*t;
-      px+=Math.cos(a)*len/steps; py+=Math.sin(a)*len/steps; pts.push([px,py]);
-      const taper=(1-t*.4)*(t>.88?1-(t-.88)*4:1);
-      for(let k=0;k<3;k++){            // 3 needles per side per step: back, mid, front
-        for(const side of [-1,1]){
-          const L=nl*taper*(.7+rnd()*.5)*(k===2?.8:1);
-          const na=a+side*([1.05,.8,.55][k]+(rnd()-.5)*.3);
-          const ci=k===0?(rnd()*3)|0:k===1?2+((rnd()*3)|0):4+((rnd()*4)|0);
-          (out.p[ci]=out.p[ci]||[]).push(`M${px.toFixed(1)} ${py.toFixed(1)}l${(Math.cos(na)*L).toFixed(1)} ${(Math.sin(na)*L).toFixed(1)}`);
-        }
-      }
-      const every=Math.max(5,Math.round(steps/(depth===2?8:4)));
-      if(depth>0 && i>steps*.12 && i<steps*.8 && i%every===0){
-        const side=((i/every)|0)%2?1:-1;
-        twig(out,px,py,a+side*(.55+rnd()*.25),len*(depth===2?.45:.5)*(1-t*.5),nl*.85,depth-1);
-      }
-    }
-    out.s.push(`<path d="M${pts.map(p=>p[0].toFixed(1)+' '+p[1].toFixed(1)).join('L')}" stroke="#5A3D24" stroke-width="${depth===2?4:depth?2.4:1.4}"/>`);
-  }
-  function branchSVG(len,lights){
-    const out={p:[],s:[]};
-    twig(out,0,0,-0.05,len,30,2);
-    const needles=out.p.map((d,i)=>d?`<path d="${d.join('')}" stroke="${PAL[i]}"/>`:'').join('');
-    let l='';
-    for(let i=0;i<(lights||0);i++){const x=len*(.25+rnd()*.65),y=(rnd()-.5)*70;
-      l+=`<g class="lt" style="animation-delay:${(-rnd()*2.4).toFixed(2)}s"><circle cx="${x.toFixed(0)}" cy="${y.toFixed(0)}" r="10" fill="#F6D58E" opacity=".3"/><circle cx="${x.toFixed(0)}" cy="${y.toFixed(0)}" r="3.4" fill="#FFEBC0"/></g>`;}
-    return `<svg viewBox="-10 -150 ${len+50} 300" fill="none" stroke-linecap="round" stroke-width="1.5">${out.s.join('')}${needles}${l}</svg>`;
-  }
+  // ratio = h/w; bx,by = stem base position in % of image box
+  const IM={'branch-snow-1':{r:1.452,bx:.5,by:81},'branch-snow-2':{r:1.5,bx:.7,by:99},'branch-green':{r:1.374,bx:.6,by:75.3}};
   function place(id,defs){
     const box=document.getElementById(id); if(!box) return;
-    box.innerHTML=defs.map(d=>`<div class="br ${d.side}${d.cls?' '+d.cls:''}" style="${d.side==='right'?'right':'left'}:${d.x};top:${d.y};--w:${d.w}">
-      <div class="br-in" style="--d:${d.delay||0}s"><div class="br-sway" style="--r:${d.r}deg;--t:${d.t||7}s;--sd:${-(d.sd||0)}s">${branchSVG(d.len||360,d.lights||0)}</div></div></div>`).join('');
+    box.innerHTML=defs.map(d=>{const m=IM[d.img];
+      return `<div class="br ${d.side}${d.cls?' '+d.cls:''}" style="--w:${d.w};${d.side==='right'?'right':'left'}:calc(${d.x} - var(--w) * ${m.bx/100});top:calc(${d.y} - var(--w) * ${(m.r*m.by/100).toFixed(3)})">
+      <div class="br-in" style="--d:${d.delay||0}s"><div class="br-sway" style="transform-origin:${m.bx}% ${m.by}%;--r:${d.r}deg;--t:${d.t||7}s;--sd:${-(d.sd||0)}s"><img src="img/${d.img}.webp" alt="" loading="${d.lazy?'lazy':'eager'}" decoding="async"></div></div></div>`;}).join('');
   }
+  // x,y = where the stem base sits; r = rotation (0 = branch points up-right, 90 = down-right)
   place('heroBranches',[
-    {side:'left',x:'-80px',y:'-90px',w:'clamp(240px,24vw,360px)',r:14,t:7,delay:.1,lights:3},
-    {side:'left',x:'-110px',y:'80%',w:'clamp(240px,24vw,380px)',r:-16,t:8,sd:2,delay:.35,cls:'hide-sm'},
-    {side:'right',x:'-70px',y:'-80px',w:'clamp(250px,28vw,420px)',r:22,t:6.5,sd:1,delay:.25,lights:3},
-    {side:'right',x:'-100px',y:'84%',w:'clamp(230px,22vw,360px)',r:-18,t:7.5,sd:3,delay:.5,cls:'hide-sm'},
+    {side:'left',img:'branch-green',x:'-30px',y:'100%',w:'clamp(170px,15vw,230px)',r:15,t:8,sd:2,delay:.35,cls:'hide-sm'},
+    {side:'right',img:'branch-snow-2',x:'-30px',y:'0px',w:'clamp(170px,16vw,240px)',r:95,t:6.5,sd:1,delay:.25},
+    {side:'right',img:'branch-green',x:'-30px',y:'100%',w:'clamp(170px,15vw,230px)',r:10,t:7.5,sd:3,delay:.5,cls:'hide-sm'},
   ]);
   place('orderBranches',[
-    {side:'left',x:'-90px',y:'74%',w:'clamp(240px,24vw,360px)',r:-20,t:8,sd:2,lights:4},
+    {side:'left',img:'branch-snow-1',x:'-20px',y:'96%',w:'clamp(150px,14vw,210px)',r:48,t:8,sd:2,lazy:1},
   ]);
   place('catalogBranches',[
-    {side:'left',x:'-90px',y:'-40px',w:'clamp(200px,22vw,340px)',r:18,t:7.5,lights:2},
-    {side:'right',x:'-90px',y:'-30px',w:'clamp(200px,22vw,340px)',r:16,t:6.8,sd:2,lights:2},
+    {side:'left',img:'branch-green',x:'-30px',y:'0px',w:'clamp(150px,14vw,220px)',r:88,t:7.5,lazy:1},
+    {side:'right',img:'branch-snow-1',x:'-30px',y:'0px',w:'clamp(150px,14vw,220px)',r:88,t:6.8,sd:2,lazy:1},
   ]);
   place('faqBranches',[
-    {side:'right',x:'-100px',y:'30%',w:'clamp(200px,22vw,320px)',r:-10,t:7,sd:1,cls:'hide-sm'},
-    {side:'left',x:'-100px',y:'60%',w:'clamp(200px,22vw,320px)',r:8,t:8,sd:3,cls:'hide-sm',lights:2},
+    {side:'right',img:'branch-snow-2',x:'-30px',y:'45%',w:'clamp(160px,15vw,230px)',r:40,t:7,sd:1,cls:'hide-sm',lazy:1},
+    {side:'left',img:'branch-green',x:'-30px',y:'85%',w:'clamp(160px,15vw,230px)',r:30,t:8,sd:3,cls:'hide-sm',lazy:1},
   ]);
 })();
 
